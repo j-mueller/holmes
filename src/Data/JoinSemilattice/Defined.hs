@@ -96,7 +96,7 @@ instance Fractional x => Fractional (Defined x) where
 instance Eq content => Input (Defined content) where
   type Raw (Defined content) = content
 
-  from count options = Config (replicate count Unknown) do
+  from options = Config (pure Unknown) do
     pure . \case
       Unknown -> map Exactly options
       Exactly a | a `elem` options -> [Exactly a]

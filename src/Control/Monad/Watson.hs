@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE RankNTypes #-}
@@ -47,6 +48,8 @@ import Data.Kind (Type)
 import Data.Propagator (Prop)
 import qualified Data.Propagator as Prop
 import Type.Reflection (Typeable)
+import Data.Traversable.WithIndex (TraversableWithIndex)
+import qualified Data.CDCL as CDCL
 
 -- | A monad capable of solving constraint problems using 'ST' as the
 -- evaluation type. Cells are represented using 'Data.STRef.STRef' references,
@@ -117,10 +120,11 @@ satisfying
   :: ( EqC f x
      , EqR f
      , Typeable x
+     , TraversableWithIndex CDCL.Major g
      )
-  => (forall h. Config (Watson h) (f x))
-  -> (forall m. MonadCell m => [ Prop m (f x) ] -> Prop m (f Bool))
-  -> Maybe [ f x ]
+  => (forall h. Config g (Watson h) (f x))
+  -> (forall m. MonadCell m => g (Prop m (f x)) -> Prop m (f Bool))
+  -> Maybe (g (f x))
 satisfying config f
   = runST (MoriarT.runOne (MoriarT.solve (coerce config) f))
 
@@ -132,9 +136,10 @@ whenever
   :: ( EqC f x
      , EqR f
      , Typeable x
+     , TraversableWithIndex CDCL.Major g
      )
-  => (forall h. Config (Watson h) (f x))
-  -> (forall m. MonadCell m => [ Prop m (f x) ] -> Prop m (f Bool))
-  -> [[ f x ]]
+  => (forall h. Config g (Watson h) (f x))
+  -> (forall m. MonadCell m => g (Prop m (f x)) -> Prop m (f Bool))
+  -> [g (f x)]
 whenever config f
   = runST (MoriarT.runAll (MoriarT.solve (coerce config) f))

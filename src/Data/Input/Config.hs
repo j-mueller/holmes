@@ -43,8 +43,8 @@ import Data.Kind (Type)
 -- the initial value is an "Data.JoinSemilattice.Intersect" of @[1 .. 5]@, the
 -- refinements might be 'Data.JoinSemilattice.Intersect.singleton' values of
 -- every remaining possibility.
-data Config (m :: Type -> Type) (x :: Type)
-  = Config { initial :: [ x ], refine  :: x -> m [ x ] }
+data Config (f :: Type -> Type) (m :: Type -> Type) (x :: Type)
+  = Config { initial :: f x, refine  :: x -> m [ x ] }
 
 -- | The simplest way of generating an input configuration is to say that a
 -- problem has @m@ variables that will all be one of @n@ possible values. For
@@ -63,12 +63,12 @@ class Input (x :: Type) where
 
   -- | Generate @m@ variables who are one of @n@ values. @81 `from` [1 .. 9]@,
   -- @5 `from` [ True, False ]@, and so on.
-  from :: Applicative m => Int -> [ Raw x ] -> Config m x 
+  from :: (Applicative f, Applicative m) => [Raw x] -> Config f m x 
 
 -- | For debugging purposes, produce a 'HashSet' of all possible refinements
 -- that a 'Config' might produce for a given problem. This set could
 -- potentially be very large!
-permute :: (Applicative m, Eq x, Hashable x) => Config m x -> m (HashSet [ x ])
+permute :: (Applicative m, Eq x, Hashable x) => Config [] m x -> m (HashSet [ x ])
 permute Config{..} = fmap HashSet.fromList (go initial)
   where go [      ] = pure [ [] ]
         go (i : is) = liftA2 (liftA2 (:)) (refine i) (go is)

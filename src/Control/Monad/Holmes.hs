@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE RankNTypes #-}
@@ -54,6 +55,8 @@ import Data.Propagator (Prop)
 import qualified Data.Propagator as Prop
 import qualified Hedgehog.Gen as Gen
 import Type.Reflection (Typeable)
+import Data.Traversable.WithIndex (TraversableWithIndex)
+import qualified Data.CDCL as CDCL
 
 -- | A monad capable of solving constraint problems using 'IO' as the
 -- evaluation type. Cells are represented using 'Data.IORef.IORef' references,
@@ -125,11 +128,12 @@ satisfying
   :: ( EqC f x
      , EqR f
      , Typeable x
+     , TraversableWithIndex CDCL.Major g
      )
-  => Config Holmes (f x)
-  -> (forall m. MonadCell m => [ Prop m (f x) ] -> Prop m (f Bool))
-  -> IO (Maybe [ f x ])
-satisfying (coerce -> config :: Config (MoriarT IO) (f x)) f
+  => Config g Holmes (f x)
+  -> (forall m. MonadCell m => g (Prop m (f x)) -> Prop m (f Bool))
+  -> IO (Maybe (g (f x)))
+satisfying (coerce -> config :: Config g (MoriarT IO) (f x)) f
   = MoriarT.runOne (MoriarT.solve config f)
 
 -- | Shuffle the refinements in a configuration. If we make a configuration
@@ -140,7 +144,7 @@ satisfying (coerce -> config :: Config (MoriarT IO) (f x)) f
 --
 -- Another nice use for this function is procedural generation: often, your
 -- results will look more "natural" if you introduce an element of randomness.
-shuffle :: Config Holmes x -> Config Holmes x
+shuffle :: Config g Holmes x -> Config g Holmes x
 shuffle Config{..} = Config initial \x -> do
   let shuffle' = liftIO . Gen.sample . Gen.shuffle
   Holmes (runHolmes (refine x) >>= shuffle')
@@ -153,9 +157,10 @@ whenever
   :: ( EqC f x
      , EqR f
      , Typeable x
+     , TraversableWithIndex CDCL.Major g
      )
-  => Config Holmes (f x)
-  -> (forall m. MonadCell m => [ Prop m (f x) ] -> Prop m (f Bool))
-  -> IO [[ f x ]]
-whenever (coerce -> config :: Config (MoriarT IO) (f x)) f
+  => Config g Holmes (f x)
+  -> (forall m. MonadCell m => g (Prop m (f x)) -> Prop m (f Bool))
+  -> IO [g (f x)]
+whenever (coerce -> config :: Config g (MoriarT IO) (f x)) f
   = MoriarT.runAll (MoriarT.solve config f)

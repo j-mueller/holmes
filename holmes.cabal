@@ -39,14 +39,15 @@ library
                , Data.JoinSemilattice.Class.Zipping
                , Data.CDCL
 
-  build-depends: base >= 4.12 && < 4.19
+  build-depends: base >= 4.18
                , containers >= 0.6 && < 0.7
                , hashable >= 1.3 && < 1.5
                , hedgehog >= 1.0 && < 1.5
-               , logict >= 0.7 && < 0.8
-               , mtl >= 2.2 && < 2.3
+               , indexed-traversable
+               , logict >= 0.7 && < 0.9
+               , mtl >= 2.2 && < 2.4
                , primitive >= 0.7 && < 0.8
-               , transformers >= 0.5 && < 0.6
+               , transformers >= 0.5 && < 0.7
                , unordered-containers >= 0.2 && < 0.3
 
   ghc-options: -Wall -Wextra
@@ -87,18 +88,19 @@ test-suite test
   type:     exitcode-stdio-1.0
   main-is:  Main.hs
 
-  build-depends: base
+  build-depends: base >= 4.18
                , containers >= 0.6 && < 0.7
                , hashable >= 1.3 && < 1.5
                , hedgehog >= 1.0 && < 1.5
                , holmes
                , hspec 
                , primitive >= 0.7 && < 0.8
-               , transformers >= 0.5 && < 0.6
+               , transformers >= 0.5 && < 0.7
                , tasty >= 1.2 && < 1.5
                , tasty-discover
                , tasty-hedgehog
                , tasty-hspec
+               , vector-sized
 
   other-modules: Test.Control.Monad.Cell.Class
                , Test.Data.Input.Config

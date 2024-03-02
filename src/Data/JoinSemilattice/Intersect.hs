@@ -140,9 +140,13 @@ union = coerce ((<>) @(HashSet _))
 instance Intersectable x => Input (Intersect x) where
   type Raw (Intersect x) = x
 
-  from count = using . replicate count . fromList
+  from i =
+    Config
+      { initial = pure (fromList i)
+      , refine = pure . fmap singleton . toList
+      }
 
 -- | Produce a 'Config' with the given /initial/ value, where the 'refine'
 -- function just tries each remaining candidate as a singleton.
-using :: (Applicative m, Intersectable x) => [ Intersect x ] -> Config m (Intersect x)
+using :: (Applicative m, Intersectable x) => f (Intersect x) -> Config f m (Intersect x)
 using xs = Config xs (pure . fmap singleton . toList)

@@ -97,12 +97,12 @@ instance Fractional x => Fractional (Interval x) where
 instance (Ord x, Num x, Integral x) => Input (Interval x) where
   type Raw (Interval x) = Maybe (x, x)
 
-  from n raws = Config
-    { initial = replicate n All
+  from i = Config
+    { initial = pure All -- fmap (maybe Empty Interval) i
     , refine = pure . \case
-        All -> maybe Empty Interval <$> raws
+        All -> maybe Empty Interval <$> i
         Interval (a, b)
-          | any (not . isEmpty . (<>) (Interval (a, b)) . maybe Empty Interval) raws ->
+          | any (not . isEmpty . (<>) (Interval (a, b)) . maybe Empty Interval) i ->
               if a /= b
                 then let midpoint = (a + b) `div` 2 in [Interval (a, midpoint), Interval (midpoint, b)]
                 else [Interval (a, b)]

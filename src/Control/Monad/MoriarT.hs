@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
@@ -37,7 +38,7 @@ module Control.Monad.MoriarT
   ) where
 
 import Control.Applicative (Alternative (..))
-import Control.Monad (MonadPlus, guard)
+import Control.Monad (MonadPlus, guard, void)
 import Control.Monad.Cell.Class (MonadCell (..))
 import qualified Control.Monad.Cell.Class as Cell
 import Control.Monad.IO.Class (MonadIO (..))
@@ -68,6 +69,7 @@ import qualified Data.Primitive.MutVar as MutVar
 import Data.Propagator (Prop)
 import qualified Data.Propagator as Prop
 import Type.Reflection (Typeable)
+import Data.Traversable.WithIndex (itraverse, TraversableWithIndex)
 
 -- | The constraint-solving monad transformer. We implement the current
 -- computation context with 'MonadReader', and the current "no goods" list with
@@ -191,16 +193,18 @@ solve
      , EqR f
      , Merge (f x)
      , Typeable x
+     , Traversable g
+     , TraversableWithIndex CDCL.Major g
      )
-  => Config (MoriarT m) (f x)
-  -> (forall m'. MonadCell m' => [ Prop m' (f x) ] -> Prop m' (f Bool))
-  -> MoriarT m [ f x ]
+  => Config g (MoriarT m) (f x)
+  -> (forall m'. MonadCell m' => g (Prop m' (f x)) -> Prop m' (f Bool))
+  -> MoriarT m (g (f x))
 solve Config{..} predicate = do
   inputs <- traverse Cell.fill initial
-  output <- Prop.down (predicate (map Prop.up inputs))
+  output <- Prop.down (predicate (fmap Prop.up inputs))
   Cell.write output trueR
 
-  _ <- zip [0 ..] inputs & traverse \(major, cell) -> do
+  void $ inputs & itraverse \major cell -> do
     current     <- unsafeRead cell
     refinements <- refine current
 
