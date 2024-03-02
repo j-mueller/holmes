@@ -21,6 +21,7 @@ library
                  , Data.Input.Config
                  , Data.JoinSemilattice.Defined
                  , Data.JoinSemilattice.Intersect
+                 , Data.JoinSemilattice.Interval
                  , Data.Propagator
                  , Data.Holmes
 
@@ -110,6 +111,7 @@ test-suite test
                , Test.Data.JoinSemilattice.Class.Sum
                , Test.Data.JoinSemilattice.Defined
                , Test.Data.JoinSemilattice.Intersect
+               , Test.Data.JoinSemilattice.Interval
                , Test.Data.Propagator
                , Test.Regression.Issue7
                , Test.Util.Laws
