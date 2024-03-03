@@ -4,6 +4,7 @@
 {-# LANGUAGE DerivingVia        #-}
 {-# LANGUAGE KindSignatures     #-}
 {-# LANGUAGE LambdaCase         #-}
+{-# LANGUAGE MultiWayIf         #-}
 {-# LANGUAGE TypeFamilies       #-}
 {-# LANGUAGE ViewPatterns       #-}
 {-|
@@ -21,11 +22,16 @@ module Data.JoinSemilattice.Interval(
   normalise
 ) where
 
-import           Control.Applicative (liftA2)
-import           Data.Input.Config   (Config (..), Input (..))
-import           Data.Kind           (Type)
-import           Data.Monoid         (Ap (..))
-import           GHC.Generics        (Generic)
+import           Control.Applicative                (liftA2)
+import           Data.Input.Config                  (Config (..), Input (..))
+import           Data.JoinSemilattice.Class.Abs     (AbsR (..))
+import           Data.JoinSemilattice.Class.Boolean (BooleanR (..))
+import           Data.JoinSemilattice.Class.Merge   (Merge (..), Result (..))
+import           Data.Kind                          (Type)
+import Data.JoinSemilattice.Class.Sum (SumR(..))
+import Data.JoinSemilattice.Class.Eq(EqR(..))
+import           Data.Monoid                        (Ap (..))
+import           GHC.Generics                       (Generic)
 
 {-| Defines intervals of possible values
 -}
@@ -35,6 +41,9 @@ data Interval (x :: Type)
   | All -- ^ All values
   deriving stock (Eq, Ord, Show, Functor, Generic)
   deriving (Bounded, Num) via (Ap Interval x)
+
+boolItvl :: Interval Bool
+boolItvl = Interval (False, True)
 
 {-| If the interval only contains a single point, return it.
 -}
@@ -109,3 +118,56 @@ instance (Ord x, Num x, Integral x) => Input (Interval x) where
           | otherwise -> [Empty]
         Empty -> [Empty]
     }
+
+instance Ord x => Merge (Interval x) where
+  Empty <<- _ = Failure
+  _ <<- Empty = Failure
+
+  _ <<- All   = Unchanged
+  All <<- x   = Changed x
+
+  Interval (normalise -> (x, y)) <<- Interval (normalise -> (x', y'))
+    | (x, y) == (x', y') = Unchanged
+    | y < x' || x > y'   = Failure
+    | otherwise          = Changed $ Interval (max x x', min y y')
+
+instance (Num x, Ord x) => AbsR (Interval x)
+instance (Num x, Ord x) => SumR (Interval x)
+
+instance BooleanR Interval where
+  falseR = pure False
+  trueR  = pure True
+  notR (l, r) = (fmap not r, fmap not l)
+
+  andR (x, y, z) =
+    ( if | z == trueR                -> trueR
+         | z == falseR && y == trueR -> falseR
+         | otherwise                 -> boolItvl
+    , if | z == trueR                -> trueR
+         | z == falseR && x == trueR -> falseR
+         | otherwise                 -> boolItvl
+    , liftA2 (&&) x y -- ??
+    )
+
+  orR (x, y, z) =
+    ( if | z == falseR               -> falseR
+         | z == trueR && y == falseR -> trueR
+         | otherwise                 -> boolItvl
+    , if | z == falseR               -> falseR
+         | z == trueR && x == falseR -> trueR
+         | otherwise                 -> boolItvl
+    , liftA2 (||) x y -- ??
+    )
+
+instance EqR Interval where
+  type EqC Interval = Ord
+
+  eqR (x, y, z) =
+    ( if | z == trueR  -> y
+         | otherwise   -> mempty
+    , if | z == trueR  -> y
+         | otherwise   -> mempty
+    , let r = x <> y in
+      if | isEmpty r -> falseR
+         | otherwise -> boolItvl
+    )
