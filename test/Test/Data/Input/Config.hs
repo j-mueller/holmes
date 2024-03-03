@@ -14,7 +14,6 @@ import qualified Data.Set               as Set
 import           Data.Vector.Sized      (Vector)
 import           GHC.TypeNats           (SNat, withSomeSNat)
 import           Hedgehog
-import Data.Foldable (toList)
 import qualified Hedgehog.Gen           as Gen
 import qualified Hedgehog.Range         as Range
 
@@ -39,7 +38,7 @@ mkProp _ inputs = do
       config = from inputs
   annotateShow (initial config)
 
-  Just permutations <- liftIO (runOne (permute $ _ config))
+  Just permutations <- liftIO (runOne (permute config))
   annotateShow (toList permutations)
 
   length (toList permutations) === length inputs ^ _
